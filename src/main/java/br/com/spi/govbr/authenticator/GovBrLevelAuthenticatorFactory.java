@@ -12,9 +12,13 @@ import org.keycloak.provider.ProviderConfigProperty;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Factory responsável por criar instâncias do GovBrLevelAuthenticator
+ */
 public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, ConfigurableAuthenticatorFactory {
 
-    public static final String REQUIREMENT_CHOICES[] = {
+    // Opções de requisito disponíveis para este authenticator
+    public static final String[] REQUIREMENT_CHOICES = {
             AuthenticationExecutionModel.Requirement.REQUIRED.name(),
             AuthenticationExecutionModel.Requirement.ALTERNATIVE.name(),
             AuthenticationExecutionModel.Requirement.DISABLED.name()
@@ -27,12 +31,12 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
 
     @Override
     public String getReferenceCategory() {
-        return "validation";
+        return "validation"; // Categoria de validação
     }
 
     @Override
     public boolean isConfigurable() {
-        return false; // Sem configurações adicionais por enquanto
+        return false; // Por enquanto não há configurações adicionais via UI
     }
 
     @Override
@@ -42,17 +46,18 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
 
     @Override
     public boolean isUserSetupAllowed() {
-        return false;
+        return false; // Usuário não pode configurar este authenticator
     }
 
     @Override
     public String getHelpText() {
-        return "Valida se o usuário Gov.br possui nível Prata ou Ouro antes de permitir o login";
+        return "Valida se o usuário Gov.br possui nível Prata ou Ouro antes de permitir o login. " +
+                "Este authenticator deve ser configurado APÓS o Identity Provider Redirector no fluxo de autenticação.";
     }
 
     @Override
     public List<ProviderConfigProperty> getConfigProperties() {
-        return Arrays.asList();
+        return List.of();
     }
 
     @Override
@@ -62,17 +67,19 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
 
     @Override
     public void init(Config.Scope config) {
-        // Inicialização se necessária
+        // Inicialização da factory se necessária
+        // Pode ser usado para validar configurações globais
     }
 
     @Override
     public void postInit(KeycloakSessionFactory factory) {
         // Pós-inicialização se necessária
+        // Pode ser usado para registrar listeners adicionais
     }
 
     @Override
     public void close() {
-        // Cleanup se necessário
+        // Cleanup de recursos da factory se necessário
     }
 
     @Override
