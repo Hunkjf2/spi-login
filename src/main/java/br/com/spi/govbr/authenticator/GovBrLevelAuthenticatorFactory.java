@@ -18,10 +18,10 @@ import java.util.List;
 public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, ConfigurableAuthenticatorFactory {
 
     // Opções de requisito disponíveis para este authenticator
-    public static final String[] REQUIREMENT_CHOICES = {
-            AuthenticationExecutionModel.Requirement.REQUIRED.name(),
-            AuthenticationExecutionModel.Requirement.ALTERNATIVE.name(),
-            AuthenticationExecutionModel.Requirement.DISABLED.name()
+    public static final AuthenticationExecutionModel.Requirement[] REQUIREMENT_CHOICES = {
+            AuthenticationExecutionModel.Requirement.REQUIRED,
+            AuthenticationExecutionModel.Requirement.ALTERNATIVE,
+            AuthenticationExecutionModel.Requirement.DISABLED
     };
 
     @Override
@@ -40,7 +40,7 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
     }
 
     @Override
-    public String[] getRequirementChoices() {
+    public AuthenticationExecutionModel.Requirement[] getRequirementChoices() {
         return REQUIREMENT_CHOICES;
     }
 
@@ -57,7 +57,7 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
 
     @Override
     public List<ProviderConfigProperty> getConfigProperties() {
-        return List.of();
+        return Arrays.asList();
     }
 
     @Override
@@ -68,13 +68,11 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
     @Override
     public void init(Config.Scope config) {
         // Inicialização da factory se necessária
-        // Pode ser usado para validar configurações globais
     }
 
     @Override
     public void postInit(KeycloakSessionFactory factory) {
         // Pós-inicialização se necessária
-        // Pode ser usado para registrar listeners adicionais
     }
 
     @Override
