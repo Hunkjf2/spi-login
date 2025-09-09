@@ -43,8 +43,7 @@ public class GovBrLevelAuthenticator implements Authenticator {
             String accessToken = TokenExtractor.extrairTokenGovBr(context);
             if (accessToken == null) {
                 logger.error("Token Gov.br não encontrado no contexto de autenticação");
-                falharAutenticacao(context, "Token de autenticação Gov.br não encontrado",
-                        AuthenticationFlowError.INVALID_CREDENTIALS);
+                redirecionarParaLoginComErro(context, "Token de autenticação Gov.br não encontrado");
                 return;
             }
 
@@ -56,9 +55,7 @@ public class GovBrLevelAuthenticator implements Authenticator {
 
         } catch (Exception e) {
             logger.errorf("Erro inesperado durante validação Gov.br: %s", e.getMessage());
-            falharAutenticacao(context,
-                    "Erro interno durante validação. Tente novamente.",
-                    AuthenticationFlowError.INTERNAL_ERROR);
+            redirecionarParaLoginComErro(context, "Erro interno durante validação. Tente novamente.");
         }
     }
 
@@ -104,6 +101,21 @@ public class GovBrLevelAuthenticator implements Authenticator {
         }
     }
 
+    private void falharAutenticacao(AuthenticationFlowContext context, String errorMessage, AuthenticationFlowError errorType) {
+        logger.warnf("Falhando autenticação: %s", errorMessage);
+
+        // Limpa o usuário do contexto
+        context.clearUser();
+
+        // Cria response com mensagem de erro
+        Response response = context.form()
+                .setError(errorMessage)
+                .createErrorPage(Response.Status.UNAUTHORIZED);
+
+        // Falha o contexto com o tipo de erro especificado
+        context.failure(errorType, response);
+    }
+
     /**
      * Processa o resultado da validação de nível
      */
@@ -116,7 +128,7 @@ public class GovBrLevelAuthenticator implements Authenticator {
             logger.infof("✅ Validação APROVADA para usuário %s - Nível: %s",
                     username, result.userLevel());
 
-            // Opcionalmente, salva o nível como atributo do usuário
+            // Salva o nível como atributo do usuário
             salvarNivelComoAtributo(user, result.userLevel());
 
             context.success();
@@ -153,18 +165,32 @@ public class GovBrLevelAuthenticator implements Authenticator {
     }
 
     /**
-     * Falha a autenticação com mensagem de erro customizada
+     * Redireciona o usuário de volta para a tela de login com mensagem de erro
      */
-    private void falharAutenticacao(AuthenticationFlowContext context, String errorMessage,
-                                    AuthenticationFlowError errorType) {
+    private void redirecionarParaLoginComErro(AuthenticationFlowContext context, String errorMessage) {
 
-        logger.warnf("Falhando autenticação: %s", errorMessage);
+        logger.warnf("Redirecionando para login com erro: %s", errorMessage);
 
+        // Remove o usuário do contexto para forçar novo login
+        context.clearUser();
+
+        // Limpa qualquer sessão federada existente para evitar loop
+        try {
+            if (context.getAuthenticationSession() != null) {
+                context.getAuthenticationSession().removeAuthNote("FEDERATED_ACCESS_TOKEN");
+                context.getAuthenticationSession().removeAuthNote("IDENTITY_PROVIDER_IDENTITY");
+            }
+        } catch (Exception e) {
+            logger.warnf("Erro ao limpar notas da sessão: %s", e.getMessage());
+        }
+
+        // Cria response com redirecionamento para login e mensagem de erro
         Response response = context.form()
                 .setError(errorMessage)
                 .createErrorPage(Response.Status.UNAUTHORIZED);
 
-        context.failure(errorType, response);
+        // Força falha que resulta em redirecionamento para login
+        context.failure(AuthenticationFlowError.INVALID_CREDENTIALS, response);
     }
 
     @Override

@@ -7,7 +7,6 @@ import br.com.spi.govbr.exception.GovBrValidationException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -93,9 +92,9 @@ public class GovBrApiClient {
         HttpResponse<String> response = httpClient.send(request,
                 HttpResponse.BodyHandlers.ofString());
 
-        logger.debugf("Resposta recebida - Status: %d, Body length: %d",
+        logger.infof("Resposta recebida - Status: %d, Body: %s",
                 response.statusCode(),
-                response.body() != null ? response.body().length() : 0);
+                response.body() != null ? response.body() : "null");
 
         return response;
     }
@@ -135,8 +134,7 @@ public class GovBrApiClient {
                 throw new GovBrValidationException("Resposta da API Gov.br está vazia", "EMPTY_RESPONSE");
             }
 
-            logger.debugf("Processando resposta da API: %s",
-                    responseBody.length() > 200 ? responseBody.substring(0, 200) + "..." : responseBody);
+            logger.infof("Processando resposta da API: %s", responseBody);
 
             List<GovBrLevelResponse> responses = objectMapper.readValue(
                     responseBody, new TypeReference<>() {
@@ -148,10 +146,12 @@ public class GovBrApiClient {
 
             GovBrLevelResponse levelResponse = responses.get(0);
 
+            logger.infof("Dados do nível recebidos: id=%s, dataAtualizacao=%s",
+                    levelResponse.id(), levelResponse.dataAtualizacao());
+
             if (!levelResponse.isValid()) {
-                logger.warnf("Resposta da API contém dados inválidos: id=%s, descricao=%s",
-                        levelResponse.id(), levelResponse.descricao());
-                throw new GovBrValidationException("Dados de nível inválidos retornados pela API", "INVALID_LEVEL_DATA");
+                logger.warnf("Resposta da API contém ID inválido: id=%s", levelResponse.id());
+                throw new GovBrValidationException("ID de nível inválido retornado pela API", "INVALID_LEVEL_DATA");
             }
 
             return converterCodigoParaNivel(levelResponse.id());
@@ -183,7 +183,7 @@ public class GovBrApiClient {
             }
         };
 
-        logger.debugf("Código '%s' convertido para nível '%s'", codigo, nivel);
+        logger.infof("Código '%s' convertido para nível '%s'", codigo, nivel);
         return nivel;
     }
 }

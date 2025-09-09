@@ -1,6 +1,7 @@
 package br.com.spi.govbr.service;
 
 import br.com.spi.govbr.config.GovBrValidatorConfig;
+import br.com.spi.govbr.constants.GovBrLevelConstants;
 import br.com.spi.govbr.dto.ValidationResult;
 import br.com.spi.govbr.exception.GovBrValidationException;
 import org.jboss.logging.Logger;
@@ -93,14 +94,19 @@ public class LevelValidationService {
     }
 
     /**
-     * Constrói mensagem personalizada para nível insuficiente
+     * Constrói mensagem personalizada para nível insuficiente baseada no nível atual
      */
     private String construirMensagemNivelInsuficiente(String nivelAtual) {
+        // Se for especificamente Bronze, usa mensagem específica
+        if (GovBrLevelConstants.BRONZE.equals(nivelAtual)) {
+            return GovBrValidatorConfig.getErrorBronzeLevel();
+        }
+
+        // Para outros casos (nível desconhecido, etc)
         return String.format(
-                "Seu nível de autenticação Gov.br (%s) é insuficiente. " +
-                        "É necessário nível Prata ou Ouro para acessar este sistema. " +
-                        "Acesse o portal Gov.br para aumentar seu nível de confiabilidade.",
-                nivelAtual
+                "Seu nível de autenticação Gov.br (%s) não é suficiente para acessar este sistema. " +
+                        "É necessário nível Prata ou Ouro. Acesse gov.br para verificar e elevar seu nível de confiabilidade.",
+                nivelAtual != null ? nivelAtual : "Desconhecido"
         );
     }
 
@@ -110,9 +116,9 @@ public class LevelValidationService {
     private String mapearErroParaMensagem(GovBrValidationException e) {
         return switch (e.getErrorCode()) {
             case "INVALID_TOKEN" -> GovBrValidatorConfig.getErrorInvalidToken();
-            case "API_UNAVAILABLE", "API_ERROR", "SERVICE_NOT_FOUND" ->
+            case "API_UNAVAILABLE", "API_ERROR", "SERVICE_NOT_FOUND", "PARSE_ERROR", "EMPTY_RESPONSE", "NO_LEVEL_FOUND", "INVALID_LEVEL_DATA" ->
                     GovBrValidatorConfig.getErrorApiUnavailable();
-            default -> "Erro ao validar nível de autenticação. Tente novamente.";
+            default -> "Erro ao validar seu nível Gov.br. Tente fazer login novamente.";
         };
     }
 

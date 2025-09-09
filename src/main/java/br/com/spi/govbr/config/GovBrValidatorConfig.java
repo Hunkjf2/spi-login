@@ -6,20 +6,27 @@ package br.com.spi.govbr.config;
 public class GovBrValidatorConfig {
 
     // URLs da API Gov.br
-    private static final String NIVEL_API_URL = "https://sso.teste/v1/govbr/nivel";
+    private static final String NIVEL_API_URL = "https://ssso.teste/v1/govbr/nivel";
     private static final String GOVBR_PROVIDER_ALIAS = "gov-br";
     private static final String AUTHENTICATOR_PROVIDER_ID = "govbr-level-validator";
     private static final String AUTHENTICATOR_DISPLAY_TYPE = "Gov.br Level Validator";
     private static final int REQUEST_TIMEOUT = 30;
     private static final int CONNECT_TIMEOUT = 10;
+    // Modificação: Apenas Prata e Ouro são aceitos (Bronze removido)
     private static final String[] ACCEPTED_LEVELS = {"Bronze", "Ouro"};
 
+    // Mensagens de erro mais específicas para redirecionamento ao login
     private static final String ERROR_INSUFFICIENT_LEVEL =
-            "Nível de autenticação insuficiente. É necessário nível Prata ou Ouro para acessar este sistema.";
+            "Nível de autenticação insuficiente. É necessário ter nível Prata ou Ouro no Gov.br para acessar este sistema. Acesse gov.br para elevar seu nível de confiabilidade.";
+
     private static final String ERROR_API_UNAVAILABLE =
-            "Serviço de validação Gov.br temporariamente indisponível. Tente novamente em alguns minutos.";
+            "Não foi possível validar seu nível Gov.br no momento. Tente fazer login novamente em alguns minutos.";
+
     private static final String ERROR_INVALID_TOKEN =
-            "Token de autenticação Gov.br inválido ou expirado.";
+            "Sua sessão Gov.br expirou ou é inválida. Faça login novamente através do Gov.br.";
+
+    private static final String ERROR_BRONZE_LEVEL =
+            "Seu nível Bronze no Gov.br não é suficiente para acessar este sistema. É necessário nível Prata ou Ouro. Acesse gov.br para elevar seu nível de confiabilidade.";
 
     private GovBrValidatorConfig() {}
 
@@ -61,5 +68,9 @@ public class GovBrValidatorConfig {
 
     public static String getErrorInvalidToken() {
         return ERROR_INVALID_TOKEN;
+    }
+
+    public static String getErrorBronzeLevel() {
+        return ERROR_BRONZE_LEVEL;
     }
 }

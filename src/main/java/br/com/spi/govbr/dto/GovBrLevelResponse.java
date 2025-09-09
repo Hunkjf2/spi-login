@@ -9,13 +9,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record GovBrLevelResponse(
         @JsonProperty("id") String id,
-        @JsonProperty("descricao") String descricao
+        @JsonProperty("dataAtualizacao") String dataAtualizacao
 ) {
     /**
      * Valida se a resposta contém dados válidos
+     * CORRIGIDO: Apenas o ID é obrigatório
      */
     public boolean isValid() {
-        return id != null && !id.trim().isEmpty() &&
-                descricao != null && !descricao.trim().isEmpty();
+        return id != null && !id.trim().isEmpty();
     }
 }
