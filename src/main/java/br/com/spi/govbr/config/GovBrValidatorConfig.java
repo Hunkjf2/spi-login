@@ -6,14 +6,14 @@ package br.com.spi.govbr.config;
 public class GovBrValidatorConfig {
 
     // URLs da API Gov.br
-    private static final String NIVEL_API_URL = "https://ssso.teste/v1/govbr/nivel";
+    private static final String NIVEL_API_URL = "https://nivel-loginpa.openshift.homologar.prodepa.pa.gov.br/v1/govbr/nivel";
     private static final String GOVBR_PROVIDER_ALIAS = "gov-br";
     private static final String AUTHENTICATOR_PROVIDER_ID = "govbr-level-validator";
     private static final String AUTHENTICATOR_DISPLAY_TYPE = "Gov.br Level Validator";
     private static final int REQUEST_TIMEOUT = 30;
     private static final int CONNECT_TIMEOUT = 10;
     // Modificação: Apenas Prata e Ouro são aceitos (Bronze removido)
-    private static final String[] ACCEPTED_LEVELS = {"Bronze", "Ouro"};
+    private static final String[] ACCEPTED_LEVELS = {"Ouro"};
 
     // Mensagens de erro mais específicas para redirecionamento ao login
     private static final String ERROR_INSUFFICIENT_LEVEL =

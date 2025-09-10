@@ -11,7 +11,6 @@ import org.keycloak.authentication.Authenticator;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
-import org.keycloak.models.UserSessionModel;
 import org.keycloak.sessions.AuthenticationSessionModel;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
@@ -46,7 +45,7 @@ public class GovBrLevelAuthenticator implements Authenticator {
             String accessToken = TokenExtractor.extrairTokenGovBr(context);
             if (accessToken == null) {
                 logger.error("Token Gov.br não encontrado no contexto de autenticação");
-                encerrarSessaoERedirecionarLogin(context, "Token de autenticação Gov.br não encontrado");
+                redirecionarParaLogin(context, "Token de autenticação Gov.br não encontrado");
                 return;
             }
 
@@ -58,7 +57,7 @@ public class GovBrLevelAuthenticator implements Authenticator {
 
         } catch (Exception e) {
             logger.errorf("Erro inesperado durante validação Gov.br: %s", e.getMessage());
-            encerrarSessaoERedirecionarLogin(context, "Erro interno durante validação. Tente novamente.");
+            redirecionarParaLogin(context, "Erro interno durante validação. Tente novamente.");
         }
     }
 
@@ -116,9 +115,6 @@ public class GovBrLevelAuthenticator implements Authenticator {
             logger.infof("✅ Validação APROVADA para usuário %s - Nível: %s",
                     username, result.userLevel());
 
-            // Salva o nível como atributo do usuário
-            salvarNivelComoAtributo(user, result.userLevel());
-
             context.success();
 
         } else {
@@ -127,165 +123,150 @@ public class GovBrLevelAuthenticator implements Authenticator {
 
             logger.warnf("❌ Validação REJEITADA para usuário %s - %s", username, errorMsg);
 
-            // Encerra sessão completamente e redireciona para login
-            encerrarSessaoERedirecionarLogin(context, errorMsg);
+            // Redireciona para login sem remover dados permanentes
+            redirecionarParaLogin(context, errorMsg);
         }
     }
 
     /**
-     * Salva o nível validado como atributo do usuário para referência futura
+     * Limpa a sessão atual completamente e força nova autenticação
+     * NÃO remove o usuário nem vínculos federados permanentes
      */
-    private void salvarNivelComoAtributo(UserModel user, String nivel) {
-        try {
-            if (user != null && nivel != null) {
-                user.setSingleAttribute("govbr_nivel", nivel);
-                user.setSingleAttribute("govbr_nivel_validated_at",
-                        String.valueOf(System.currentTimeMillis()));
-                logger.debugf("Nível %s salvo como atributo do usuário %s", nivel, user.getUsername());
-            }
-        } catch (Exception e) {
-            logger.warnf("Erro ao salvar nível como atributo: %s", e.getMessage());
-        }
-    }
+    private void redirecionarParaLogin(AuthenticationFlowContext context, String errorMessage) {
 
-    /**
-     * Encerra completamente a sessão do usuário e redireciona para login
-     */
-    private void encerrarSessaoERedirecionarLogin(AuthenticationFlowContext context, String errorMessage) {
-
-        logger.warnf("Encerrando sessão completamente devido a: %s", errorMessage);
-
-        UserModel user = context.getUser();
+        logger.warnf("Redirecionando para login devido a: %s", errorMessage);
 
         try {
-            // 1. Remove todas as sessões ativas do usuário
+            UserModel user = context.getUser();
+
+            // 1. Remove TODAS as sessões ativas do usuário para forçar novo login
             if (user != null) {
-                logger.infof("Removendo todas as sessões do usuário: %s", user.getUsername());
+                logger.infof("Removendo todas as sessões ativas do usuário: %s", user.getUsername());
 
                 context.getSession().sessions()
                         .getUserSessionsStream(context.getRealm(), user)
                         .forEach(userSession -> {
-                            logger.debugf("Removendo sessão: %s", userSession.getId());
+                            logger.debugf("Removendo sessão de usuário: %s", userSession.getId());
                             context.getSession().sessions().removeUserSession(context.getRealm(), userSession);
                         });
-
-//                // 2. Remove identidades federadas temporariamente
-//                context.getSession().users()
-//                        .getFederatedIdentitiesStream(context.getRealm(), user)
-//                        .filter(fed -> GovBrValidatorConfig.getGovBrProviderAlias().equals(fed.getIdentityProvider()))
-//                        .forEach(fed -> {
-//                            logger.debugf("Removendo identidade federada Gov.br do usuário: %s", user.getUsername());
-//                            context.getSession().users().removeFederatedIdentity(context.getRealm(), user, fed.getIdentityProvider());
-//                        });
             }
 
-            // 3. Limpa sessão de autenticação atual
+            // 2. Limpa completamente a sessão de autenticação atual
             AuthenticationSessionModel authSession = context.getAuthenticationSession();
             if (authSession != null) {
-                logger.debug("Limpando dados da sessão de autenticação");
+                logger.debug("Limpando TODOS os dados da sessão de autenticação");
 
-                // Remove notas específicas conhecidas (ajuste conforme necessário)
-                authSession.removeAuthNote("BROKER_NONCE");
-                authSession.removeAuthNote("BROKER_STATE");
-                authSession.removeAuthNote("BROKER_USERNAME");
+                String[] notesToRemove = {
+                        "BROKER_NONCE", "BROKER_STATE", "BROKER_USERNAME",
+                        "BROKER_SESSION_ID", "BROKER_PROVIDER_ID",
+                        "IDENTITY_PROVIDER_IDENTITY", "BROKERED_CONTEXT_NOTE",
+                        "FEDERATED_ACCESS_TOKEN"
+                };
 
-                // Limpa notas da sessão do usuário
+                for (String note : notesToRemove) {
+                    authSession.removeAuthNote(note);
+                }
+
+                // Remove notas de sessão do usuário
                 authSession.getUserSessionNotes().clear();
+
+                // Remove dados do cliente
+                authSession.getClientNotes().clear();
             }
 
-            // 4. Remove usuário do contexto
-            context.clearUser();
+            logger.info("Todas as sessões foram limpas - criando resposta de redirecionamento");
 
-            logger.info("Sessão encerrada com sucesso - redirecionando para logout");
-
-        } catch (Exception e) {
-            logger.errorf("Erro ao encerrar sessão: %s", e.getMessage());
-        }
-
-        // 5. Cria redirecionamento direto para logout
-        try {
-            String logoutUrl = construirUrlLogout(context);
+            // 3. Cria resposta de redirecionamento direto para página de login limpa
+            String loginUrl = construirUrlLogin(context);
 
             Response redirectResponse = Response.status(Response.Status.FOUND)
-                    .location(URI.create(logoutUrl))
+                    .location(URI.create(loginUrl))
                     .header("Cache-Control", "no-cache, no-store, must-revalidate")
                     .header("Pragma", "no-cache")
                     .header("Expires", "0")
+                    .header("Clear-Site-Data", "\"cache\", \"cookies\", \"storage\"")
                     .build();
 
-            context.failure(AuthenticationFlowError.INVALID_USER, redirectResponse);
+            logger.infof("Redirecionando para: %s", loginUrl);
+
+            // Usa GENERIC_AUTHENTICATION_ERROR com resposta de redirecionamento
+            context.failure(AuthenticationFlowError.GENERIC_AUTHENTICATION_ERROR, redirectResponse);
 
         } catch (Exception e) {
-            logger.errorf("Erro ao criar redirecionamento de logout: %s", e.getMessage());
+            logger.errorf("Erro durante redirecionamento: %s", e.getMessage());
 
-            // Fallback: página simples com link de logout
-            criarPaginaLogout(context, errorMessage);
+            // Fallback: apenas falha simples
+            context.failure(AuthenticationFlowError.GENERIC_AUTHENTICATION_ERROR);
         }
     }
 
     /**
-     * Constrói URL de logout completo do Keycloak
+     * Constrói URL de login do realm com todos os parâmetros necessários
      */
-    private String construirUrlLogout(AuthenticationFlowContext context) {
-        String realmName = context.getRealm().getName();
-        String baseUrl = context.getSession().getContext().getUri().getBaseUri().toString();
-
-        if (baseUrl.endsWith("/")) {
-            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
-        }
-
-        // URL de logout simples sem parâmetros problemáticos
-        return String.format("%s/realms/%s/protocol/openid-connect/logout", baseUrl, realmName);
-    }
-
-    /**
-     * Cria página simples de logout como fallback
-     */
-    private void criarPaginaLogout(AuthenticationFlowContext context, String errorMessage) {
+    private String construirUrlLogin(AuthenticationFlowContext context) {
         try {
-            String logoutUrl = construirUrlLogout(context);
+            String realmName = context.getRealm().getName();
+            String baseUrl = context.getSession().getContext().getUri().getBaseUri().toString();
 
-            String html = String.format("""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <title>Sessão Encerrada</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
-                        .container { background: white; padding: 40px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                        .error { color: #d32f2f; margin-bottom: 20px; }
-                        .message { margin-bottom: 30px; line-height: 1.6; }
-                        .button { background: #1976d2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h2 class="error">Sessão Encerrada</h2>
-                        <div class="message">%s</div>
-                        <p>Sua sessão foi encerrada. Clique no botão abaixo para fazer logout completo.</p>
-                        <a href="%s" class="button">Fazer Logout</a>
-                    </div>
-                    <script>
-                        // Redireciona automaticamente após 2 segundos
-                        setTimeout(function() {
-                            window.location.href = '%s';
-                        }, 2000);
-                    </script>
-                </body>
-                </html>
-                """, errorMessage, logoutUrl, logoutUrl);
+            if (baseUrl.endsWith("/")) {
+                baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+            }
 
-            Response response = Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(html)
-                    .type("text/html; charset=utf-8")
-                    .build();
+            // Extrai informações da sessão de autenticação atual
+            AuthenticationSessionModel authSession = context.getAuthenticationSession();
+            String clientId = authSession.getClient().getClientId();
+            String redirectUri = authSession.getRedirectUri();
+            String state = authSession.getClientNote("state");
+            String nonce = authSession.getClientNote("nonce");
+            String responseMode = authSession.getClientNote("response_mode");
+            String responseType = authSession.getClientNote("response_type");
+            String scope = authSession.getClientNote("scope");
 
-            context.failure(AuthenticationFlowError.INVALID_USER, response);
+            // Constrói a URL de autorização completa
+            StringBuilder urlBuilder = new StringBuilder();
+            urlBuilder.append(String.format("%s/realms/%s/protocol/openid-connect/auth", baseUrl, realmName));
+            urlBuilder.append("?client_id=").append(java.net.URLEncoder.encode(clientId, "UTF-8"));
+
+            if (redirectUri != null) {
+                urlBuilder.append("&redirect_uri=").append(java.net.URLEncoder.encode(redirectUri, "UTF-8"));
+            }
+
+            if (state != null) {
+                urlBuilder.append("&state=").append(java.net.URLEncoder.encode(state, "UTF-8"));
+            }
+
+            if (responseMode != null) {
+                urlBuilder.append("&response_mode=").append(java.net.URLEncoder.encode(responseMode, "UTF-8"));
+            } else {
+                urlBuilder.append("&response_mode=fragment");
+            }
+
+            if (responseType != null) {
+                urlBuilder.append("&response_type=").append(java.net.URLEncoder.encode(responseType, "UTF-8"));
+            } else {
+                urlBuilder.append("&response_type=code");
+            }
+
+            if (scope != null) {
+                urlBuilder.append("&scope=").append(java.net.URLEncoder.encode(scope, "UTF-8"));
+            } else {
+                urlBuilder.append("&scope=openid");
+            }
+
+            if (nonce != null) {
+                urlBuilder.append("&nonce=").append(java.net.URLEncoder.encode(nonce, "UTF-8"));
+            }
+
+            String finalUrl = urlBuilder.toString();
+            logger.infof("URL de login construída: %s", finalUrl);
+
+            return finalUrl;
 
         } catch (Exception e) {
-            logger.errorf("Erro ao criar página de logout: %s", e.getMessage());
-            context.failure(AuthenticationFlowError.INVALID_USER);
+            logger.errorf("Erro ao construir URL de login: %s", e.getMessage());
+
+            // Fallback com client_id fixo
+            return "http://localhost:8080/realms/estudos/protocol/openid-connect/auth?client_id=teste-frontend&response_type=code&scope=openid";
         }
     }
 

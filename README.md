@@ -15,8 +15,7 @@ O SPI atua como um **Authenticator** que é executado durante o fluxo de autenti
 ## 🚨 Comportamento de Validação
 
 ### ✅ **Login Aprovado**
-- **Nível Prata** ou **Nível Ouro** → Login permitido
-- Nível salvo como atributo do usuário para referência
+- **Nível Ouro** → Login permitido
 
 ### ❌ **Login Bloqueado**
 - **Nível Bronze** → Erro: "Nível de autenticação insuficiente"

@@ -105,7 +105,7 @@ public class LevelValidationService {
         // Para outros casos (nível desconhecido, etc)
         return String.format(
                 "Seu nível de autenticação Gov.br (%s) não é suficiente para acessar este sistema. " +
-                        "É necessário nível Prata ou Ouro. Acesse gov.br para verificar e elevar seu nível de confiabilidade.",
+                        "É necessário nível Ouro. Acesse gov.br para verificar e elevar seu nível de confiabilidade.",
                 nivelAtual != null ? nivelAtual : "Desconhecido"
         );
     }
