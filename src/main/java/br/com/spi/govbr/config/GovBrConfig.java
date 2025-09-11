@@ -3,8 +3,8 @@ package br.com.spi.govbr.config;
 public class GovBrConfig {
 
     // URLs
-    public static final String NIVEL_API_URL = "https://nivel-loginpa.openshift.homologar.prodepa.pa.gov.br/v1/govbr/nivel";
-    public static final String LOGOUT_URL = "https://loginpa.openshift.homologar.prodepa.pa.gov.br/auth/realms/loginpa/protocol/openid-connect/logout";
+    public static final String NIVEL_API_URL = "https://sso.teste/v1/govbr/nivel";
+    public static final String LOGOUT_URL = "https://sso.teste/auth/realms/loginpa/protocol/openid-connect/logout";
 
     // Provider
     public static final String PROVIDER_ALIAS = "gov-br";
