@@ -14,13 +14,19 @@ import org.keycloak.models.UserModel;
 import org.keycloak.sessions.AuthenticationSessionModel;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Authenticator que valida o nível de autenticação Gov.br durante o fluxo de login
+ * Versão modificada para incluir logout completo do Gov.br
  */
 public class GovBrLevelAuthenticator implements Authenticator {
 
     private static final Logger logger = Logger.getLogger(GovBrLevelAuthenticator.class);
+
+    // URL do endpoint de logout do Gov.br/LoginPA
+    private static final String GOVBR_LOGOUT_URL = "https://loginpa.openshift.homologar.prodepa.pa.gov.br/auth/realms/loginpa/protocol/openid-connect/logout";
 
     private final LevelValidationService validationService;
 
@@ -45,7 +51,7 @@ public class GovBrLevelAuthenticator implements Authenticator {
             String accessToken = TokenExtractor.extrairTokenGovBr(context);
             if (accessToken == null) {
                 logger.error("Token Gov.br não encontrado no contexto de autenticação");
-                redirecionarParaLogin(context, "Token de autenticação Gov.br não encontrado");
+                executarLogoutCompleto(context, "Token de autenticação Gov.br não encontrado");
                 return;
             }
 
@@ -57,7 +63,7 @@ public class GovBrLevelAuthenticator implements Authenticator {
 
         } catch (Exception e) {
             logger.errorf("Erro inesperado durante validação Gov.br: %s", e.getMessage());
-            redirecionarParaLogin(context, "Erro interno durante validação. Tente novamente.");
+            executarLogoutCompleto(context, "Erro interno durante validação. Tente novamente.");
         }
     }
 
@@ -123,23 +129,22 @@ public class GovBrLevelAuthenticator implements Authenticator {
 
             logger.warnf("❌ Validação REJEITADA para usuário %s - %s", username, errorMsg);
 
-            // Redireciona para login sem remover dados permanentes
-            redirecionarParaLogin(context, errorMsg);
+            // Executa logout completo incluindo Gov.br
+            executarLogoutCompleto(context, errorMsg);
         }
     }
 
     /**
-     * Limpa a sessão atual completamente e força nova autenticação
-     * NÃO remove o usuário nem vínculos federados permanentes
+     * Executa logout completo: limpa sessões Keycloak e redireciona via logout Gov.br
      */
-    private void redirecionarParaLogin(AuthenticationFlowContext context, String errorMessage) {
+    private void executarLogoutCompleto(AuthenticationFlowContext context, String errorMessage) {
 
-        logger.warnf("Redirecionando para login devido a: %s", errorMessage);
+        logger.warnf("Executando logout completo devido a: %s", errorMessage);
 
         try {
             UserModel user = context.getUser();
 
-            // 1. Remove TODAS as sessões ativas do usuário para forçar novo login
+            // 1. Remove TODAS as sessões ativas do usuário
             if (user != null) {
                 logger.infof("Removendo todas as sessões ativas do usuário: %s", user.getUsername());
 
@@ -152,58 +157,90 @@ public class GovBrLevelAuthenticator implements Authenticator {
             }
 
             // 2. Limpa completamente a sessão de autenticação atual
-            AuthenticationSessionModel authSession = context.getAuthenticationSession();
-            if (authSession != null) {
-                logger.debug("Limpando TODOS os dados da sessão de autenticação");
+            limparSessaoAutenticacao(context);
 
-                String[] notesToRemove = {
-                        "BROKER_NONCE", "BROKER_STATE", "BROKER_USERNAME",
-                        "BROKER_SESSION_ID", "BROKER_PROVIDER_ID",
-                        "IDENTITY_PROVIDER_IDENTITY", "BROKERED_CONTEXT_NOTE",
-                        "FEDERATED_ACCESS_TOKEN"
-                };
+            // 3. Constrói URL de logout Gov.br com redirecionamento
+            String logoutUrl = construirUrlLogoutGovBr(context);
 
-                for (String note : notesToRemove) {
-                    authSession.removeAuthNote(note);
-                }
+            logger.infof("Redirecionando para logout Gov.br: %s", logoutUrl);
 
-                // Remove notas de sessão do usuário
-                authSession.getUserSessionNotes().clear();
-
-                // Remove dados do cliente
-                authSession.getClientNotes().clear();
-            }
-
-            logger.info("Todas as sessões foram limpas - criando resposta de redirecionamento");
-
-            // 3. Cria resposta de redirecionamento direto para página de login limpa
-            String loginUrl = construirUrlLogin(context);
-
+            // 4. Cria resposta de redirecionamento para logout Gov.br
             Response redirectResponse = Response.status(Response.Status.FOUND)
-                    .location(URI.create(loginUrl))
+                    .location(URI.create(logoutUrl))
                     .header("Cache-Control", "no-cache, no-store, must-revalidate")
                     .header("Pragma", "no-cache")
                     .header("Expires", "0")
                     .header("Clear-Site-Data", "\"cache\", \"cookies\", \"storage\"")
                     .build();
 
-            logger.infof("Redirecionando para: %s", loginUrl);
-
             // Usa GENERIC_AUTHENTICATION_ERROR com resposta de redirecionamento
             context.failure(AuthenticationFlowError.GENERIC_AUTHENTICATION_ERROR, redirectResponse);
 
         } catch (Exception e) {
-            logger.errorf("Erro durante redirecionamento: %s", e.getMessage());
+            logger.errorf("Erro durante logout completo: %s", e.getMessage());
 
-            // Fallback: apenas falha simples
-            context.failure(AuthenticationFlowError.GENERIC_AUTHENTICATION_ERROR);
+            // Fallback: redireciona diretamente para login
+            redirecionarParaLoginDireto(context);
         }
     }
 
     /**
-     * Constrói URL de login do realm com todos os parâmetros necessários
+     * Limpa todos os dados da sessão de autenticação
      */
-    private String construirUrlLogin(AuthenticationFlowContext context) {
+    private void limparSessaoAutenticacao(AuthenticationFlowContext context) {
+        AuthenticationSessionModel authSession = context.getAuthenticationSession();
+        if (authSession != null) {
+            logger.debug("Limpando TODOS os dados da sessão de autenticação");
+
+            String[] notesToRemove = {
+                    "BROKER_NONCE", "BROKER_STATE", "BROKER_USERNAME",
+                    "BROKER_SESSION_ID", "BROKER_PROVIDER_ID",
+                    "IDENTITY_PROVIDER_IDENTITY", "BROKERED_CONTEXT_NOTE",
+                    "FEDERATED_ACCESS_TOKEN"
+            };
+
+            for (String note : notesToRemove) {
+                authSession.removeAuthNote(note);
+            }
+
+            // Remove notas de sessão do usuário
+            authSession.getUserSessionNotes().clear();
+
+            // Remove dados do cliente
+            authSession.getClientNotes().clear();
+        }
+    }
+
+    /**
+     * Constrói URL de logout Gov.br com parâmetro de redirecionamento
+     */
+    private String construirUrlLogoutGovBr(AuthenticationFlowContext context) {
+        try {
+            // Constrói URL de retorno para o login do Keycloak
+            String postLogoutRedirectUri = construirUrlLoginKeycloak(context);
+
+            // Codifica a URL de retorno
+            String encodedRedirectUri = URLEncoder.encode(postLogoutRedirectUri, StandardCharsets.UTF_8);
+
+            // Constrói URL completa de logout Gov.br
+            String logoutUrl = String.format("%s?post_logout_redirect_uri=%s",
+                    GOVBR_LOGOUT_URL, encodedRedirectUri);
+
+            logger.infof("URL de logout Gov.br construída: %s", logoutUrl);
+            return logoutUrl;
+
+        } catch (Exception e) {
+            logger.errorf("Erro ao construir URL de logout Gov.br: %s", e.getMessage());
+
+            // Fallback: logout simples
+            return GOVBR_LOGOUT_URL;
+        }
+    }
+
+    /**
+     * Constrói URL de login do Keycloak para redirecionamento pós-logout
+     */
+    private String construirUrlLoginKeycloak(AuthenticationFlowContext context) {
         try {
             String realmName = context.getRealm().getName();
             String baseUrl = context.getSession().getContext().getUri().getBaseUri().toString();
@@ -212,7 +249,7 @@ public class GovBrLevelAuthenticator implements Authenticator {
                 baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
             }
 
-            // Extrai informações da sessão de autenticação atual
+            // Extrai informações da sessão de autenticação
             AuthenticationSessionModel authSession = context.getAuthenticationSession();
             String clientId = authSession.getClient().getClientId();
             String redirectUri = authSession.getRedirectUri();
@@ -225,48 +262,74 @@ public class GovBrLevelAuthenticator implements Authenticator {
             // Constrói a URL de autorização completa
             StringBuilder urlBuilder = new StringBuilder();
             urlBuilder.append(String.format("%s/realms/%s/protocol/openid-connect/auth", baseUrl, realmName));
-            urlBuilder.append("?client_id=").append(java.net.URLEncoder.encode(clientId, "UTF-8"));
+            urlBuilder.append("?client_id=").append(URLEncoder.encode(clientId, StandardCharsets.UTF_8));
 
             if (redirectUri != null) {
-                urlBuilder.append("&redirect_uri=").append(java.net.URLEncoder.encode(redirectUri, "UTF-8"));
+                urlBuilder.append("&redirect_uri=").append(URLEncoder.encode(redirectUri, StandardCharsets.UTF_8));
             }
 
             if (state != null) {
-                urlBuilder.append("&state=").append(java.net.URLEncoder.encode(state, "UTF-8"));
+                urlBuilder.append("&state=").append(URLEncoder.encode(state, StandardCharsets.UTF_8));
             }
 
             if (responseMode != null) {
-                urlBuilder.append("&response_mode=").append(java.net.URLEncoder.encode(responseMode, "UTF-8"));
+                urlBuilder.append("&response_mode=").append(URLEncoder.encode(responseMode, StandardCharsets.UTF_8));
             } else {
                 urlBuilder.append("&response_mode=fragment");
             }
 
             if (responseType != null) {
-                urlBuilder.append("&response_type=").append(java.net.URLEncoder.encode(responseType, "UTF-8"));
+                urlBuilder.append("&response_type=").append(URLEncoder.encode(responseType, StandardCharsets.UTF_8));
             } else {
                 urlBuilder.append("&response_type=code");
             }
 
             if (scope != null) {
-                urlBuilder.append("&scope=").append(java.net.URLEncoder.encode(scope, "UTF-8"));
+                urlBuilder.append("&scope=").append(URLEncoder.encode(scope, StandardCharsets.UTF_8));
             } else {
                 urlBuilder.append("&scope=openid");
             }
 
             if (nonce != null) {
-                urlBuilder.append("&nonce=").append(java.net.URLEncoder.encode(nonce, "UTF-8"));
+                urlBuilder.append("&nonce=").append(URLEncoder.encode(nonce, StandardCharsets.UTF_8));
             }
 
             String finalUrl = urlBuilder.toString();
-            logger.infof("URL de login construída: %s", finalUrl);
+            logger.infof("URL de login Keycloak construída: %s", finalUrl);
 
             return finalUrl;
 
         } catch (Exception e) {
-            logger.errorf("Erro ao construir URL de login: %s", e.getMessage());
+            logger.errorf("Erro ao construir URL de login Keycloak: %s", e.getMessage());
 
-            // Fallback com client_id fixo
-            return "http://localhost:8080/realms/estudos/protocol/openid-connect/auth?client_id=teste-frontend&response_type=code&scope=openid";
+            // Fallback simples
+            String realmName = context.getRealm().getName();
+            String baseUrl = context.getSession().getContext().getUri().getBaseUri().toString();
+            return String.format("%s/realms/%s/protocol/openid-connect/auth?client_id=teste-frontend&response_type=code&scope=openid",
+                    baseUrl.replaceAll("/$", ""), realmName);
+        }
+    }
+
+    /**
+     * Fallback: redireciona diretamente para login sem passar pelo logout Gov.br
+     */
+    private void redirecionarParaLoginDireto(AuthenticationFlowContext context) {
+        try {
+            String loginUrl = construirUrlLoginKeycloak(context);
+
+            Response redirectResponse = Response.status(Response.Status.FOUND)
+                    .location(URI.create(loginUrl))
+                    .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                    .header("Pragma", "no-cache")
+                    .header("Expires", "0")
+                    .build();
+
+            logger.infof("Fallback - Redirecionando diretamente para: %s", loginUrl);
+            context.failure(AuthenticationFlowError.GENERIC_AUTHENTICATION_ERROR, redirectResponse);
+
+        } catch (Exception e) {
+            logger.errorf("Erro no fallback de redirecionamento: %s", e.getMessage());
+            context.failure(AuthenticationFlowError.GENERIC_AUTHENTICATION_ERROR);
         }
     }
 

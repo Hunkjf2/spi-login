@@ -13,7 +13,7 @@ public class GovBrValidatorConfig {
     private static final int REQUEST_TIMEOUT = 30;
     private static final int CONNECT_TIMEOUT = 10;
     // Modificação: Apenas Prata e Ouro são aceitos (Bronze removido)
-    private static final String[] ACCEPTED_LEVELS = {"Ouro"};
+    private static final String[] ACCEPTED_LEVELS = {"Bronze", "Ouro"};
 
     // Mensagens de erro mais específicas para redirecionamento ao login
     private static final String ERROR_INSUFFICIENT_LEVEL =
