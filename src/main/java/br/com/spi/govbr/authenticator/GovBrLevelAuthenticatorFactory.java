@@ -1,23 +1,18 @@
 package br.com.spi.govbr.authenticator;
 
-import br.com.spi.govbr.config.GovBrValidatorConfig;
+import br.com.spi.govbr.config.GovBrConfig;
 import org.keycloak.Config;
 import org.keycloak.authentication.Authenticator;
 import org.keycloak.authentication.AuthenticatorFactory;
-import org.keycloak.authentication.ConfigurableAuthenticatorFactory;
 import org.keycloak.models.AuthenticationExecutionModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.provider.ProviderConfigProperty;
-import java.util.Arrays;
+
 import java.util.List;
 
-/**
- * Factory responsável por criar instâncias do GovBrLevelAuthenticator
- */
-public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, ConfigurableAuthenticatorFactory {
+public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory {
 
-    // Opções de requisito disponíveis para este authenticator
     public static final AuthenticationExecutionModel.Requirement[] REQUIREMENT_CHOICES = {
             AuthenticationExecutionModel.Requirement.REQUIRED,
             AuthenticationExecutionModel.Requirement.ALTERNATIVE,
@@ -26,17 +21,17 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
 
     @Override
     public String getDisplayType() {
-        return GovBrValidatorConfig.getAuthenticatorDisplayType();
+        return GovBrConfig.AUTHENTICATOR_NAME;
     }
 
     @Override
     public String getReferenceCategory() {
-        return "validation"; // Categoria de validação
+        return "validation";
     }
 
     @Override
     public boolean isConfigurable() {
-        return false; // Por enquanto não há configurações adicionais via UI
+        return false;
     }
 
     @Override
@@ -46,18 +41,18 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
 
     @Override
     public boolean isUserSetupAllowed() {
-        return false; // Usuário não pode configurar este authenticator
+        return false;
     }
 
     @Override
     public String getHelpText() {
-        return "Valida se o usuário Gov.br possui nível Prata ou Ouro antes de permitir o login. " +
-                "Este authenticator deve ser configurado APÓS o Identity Provider Redirector no fluxo de autenticação.";
+        return "Valida se o usuário Gov.br possui nível Ouro antes de permitir o login. " +
+                "Deve ser configurado APÓS o Identity Provider Redirector.";
     }
 
     @Override
     public List<ProviderConfigProperty> getConfigProperties() {
-        return Arrays.asList();
+        return List.of();
     }
 
     @Override
@@ -66,22 +61,16 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory, Con
     }
 
     @Override
-    public void init(Config.Scope config) {
-        // Inicialização da factory se necessária
-    }
+    public void init(Config.Scope config) {}
 
     @Override
-    public void postInit(KeycloakSessionFactory factory) {
-        // Pós-inicialização se necessária
-    }
+    public void postInit(KeycloakSessionFactory factory) {}
 
     @Override
-    public void close() {
-        // Cleanup de recursos da factory se necessário
-    }
+    public void close() {}
 
     @Override
     public String getId() {
-        return GovBrValidatorConfig.getAuthenticatorProviderId();
+        return GovBrConfig.AUTHENTICATOR_ID;
     }
 }
