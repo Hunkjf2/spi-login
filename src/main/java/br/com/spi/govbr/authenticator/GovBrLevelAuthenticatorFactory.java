@@ -8,7 +8,6 @@ import org.keycloak.models.AuthenticationExecutionModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.provider.ProviderConfigProperty;
-
 import java.util.List;
 
 public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory {
@@ -46,8 +45,7 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory {
 
     @Override
     public String getHelpText() {
-        return "Valida se o usuário Gov.br possui nível Ouro antes de permitir o login. " +
-                "Deve ser configurado APÓS o Identity Provider Redirector.";
+        return "Valida se o usuário Gov.br possui nível necessário antes de permitir o login.";
     }
 
     @Override
@@ -61,13 +59,19 @@ public class GovBrLevelAuthenticatorFactory implements AuthenticatorFactory {
     }
 
     @Override
-    public void init(Config.Scope config) {}
+    public void init(Config.Scope config) {
+        // Não implementado
+    }
 
     @Override
-    public void postInit(KeycloakSessionFactory factory) {}
+    public void postInit(KeycloakSessionFactory factory) {
+        // Não implementado
+    }
 
     @Override
-    public void close() {}
+    public void close() {
+        // Não implementado
+    }
 
     @Override
     public String getId() {

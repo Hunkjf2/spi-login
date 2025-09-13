@@ -1,0 +1,6 @@
+{
+    "themes": [{
+        "name": "govbr-custom",
+        "types": ["login"]
+    }]
+}

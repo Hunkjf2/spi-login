@@ -4,7 +4,7 @@ public class GovBrConfig {
 
     // URLs
     public static final String NIVEL_API_URL = "https://sss/v1/govbr/nivel";
-    public static final String LOGOUT_URL = "https://sss/logout";
+    public static final String LOGOUT_URL = "https://sss/openid-connect/logout";
 
     // Provider
     public static final String PROVIDER_ALIAS = "gov-br";

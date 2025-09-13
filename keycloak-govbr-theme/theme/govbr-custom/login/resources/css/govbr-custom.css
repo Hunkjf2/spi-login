@@ -1,0 +1,416 @@
+/*
+ * Tema Gov.br para Keycloak - CSS Personalizado
+ * Complementa o tema base do Keycloak com elementos específicos Gov.br
+ * Mantém compatibilidade total com o design system existente
+ */
+
+/* ====== VARIÁVEIS CSS CORES GOV.BR ====== */
+:root {
+  --govbr-blue: #1976d2;
+  --govbr-blue-dark: #1565c0;
+  --govbr-blue-light: #42a5f5;
+  
+  /* Cores dos níveis Gov.br */
+  --govbr-bronze: #8d6e63;
+  --govbr-bronze-light: #a1887f;
+  --govbr-prata: #90a4ae;
+  --govbr-prata-light: #b0bec5;
+  --govbr-ouro: #ffb300;
+  --govbr-ouro-light: #ffc947;
+  
+  /* Estados e feedback */
+  --govbr-error: #f44336;
+  --govbr-success: #4caf50;
+  --govbr-warning: #ff9800;
+  --govbr-info: #2196f3;
+  
+  /* Cores neutras complementares */
+  --govbr-gray-50: #fafafa;
+  --govbr-gray-100: #f5f5f5;
+  --govbr-gray-200: #eeeeee;
+  --govbr-gray-600: #757575;
+  --govbr-gray-800: #424242;
+}
+
+/* ====== CONTAINER PRINCIPAL DE ERRO ====== */
+.govbr-error-container {
+  /* Usa classes base do Keycloak mas adiciona customizações Gov.br */
+  max-width: 500px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* ====== ÍCONE DE ERRO ====== */
+.govbr-error-icon {
+  font-size: 4rem;
+  color: var(--govbr-error);
+  margin-bottom: 1.5rem;
+  display: block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* ====== TÍTULO DE ERRO ====== */
+.govbr-error-title {
+  color: var(--govbr-gray-800);
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+}
+
+/* ====== MENSAGEM DE ERRO ====== */
+.govbr-error-message {
+  color: var(--govbr-gray-600);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  margin-bottom: 2rem;
+}
+
+/* ====== DETALHES DE ERRO ====== */
+.govbr-error-details {
+  background: var(--govbr-gray-50);
+  border: 1px solid var(--govbr-gray-200);
+  border-left: 4px solid var(--govbr-blue);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.govbr-error-details h3 {
+  color: var(--govbr-blue);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.govbr-error-details p,
+.govbr-error-details ul {
+  color: var(--govbr-gray-600);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.govbr-error-details ul {
+  padding-left: 1.25rem;
+}
+
+.govbr-error-details li {
+  margin-bottom: 0.25rem;
+}
+
+/* ====== LISTA DE NÍVEIS GOV.BR ====== */
+.govbr-levels-list {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 1rem 0;
+}
+
+.govbr-level-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--govbr-gray-200);
+}
+
+.govbr-level-item:last-child {
+  border-bottom: none;
+}
+
+.govbr-level-item.required {
+  background: linear-gradient(90deg, #fff3e0, transparent);
+  padding: 1rem;
+  border-radius: 6px;
+  border: 2px solid var(--govbr-ouro);
+  margin: 0.5rem 0;
+}
+
+/* ====== BADGES DE NÍVEIS ====== */
+.govbr-level-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-right: 0.75rem;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.govbr-level-badge.bronze {
+  background: linear-gradient(135deg, var(--govbr-bronze), var(--govbr-bronze-light));
+}
+
+.govbr-level-badge.prata {
+  background: linear-gradient(135deg, var(--govbr-prata), var(--govbr-prata-light));
+}
+
+.govbr-level-badge.ouro {
+  background: linear-gradient(135deg, var(--govbr-ouro), var(--govbr-ouro-light));
+  color: var(--govbr-gray-800);
+  text-shadow: none;
+}
+
+.required-badge {
+  background: var(--govbr-ouro);
+  color: var(--govbr-gray-800);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.accepted-badge {
+  background: var(--govbr-success);
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+  animation: pulse 2s infinite;
+}
+
+/* Destaque para níveis aceitos */
+.govbr-level-item.accepted {
+  background: linear-gradient(90deg, #e8f5e8, transparent);
+  border: 2px solid var(--govbr-success);
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 0.5rem 0;
+}
+
+.govbr-level-item.accepted .govbr-level-badge {
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+/* ====== BOTÕES DE AÇÃO ====== */
+.govbr-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 2rem 0;
+}
+
+.govbr-btn-primary {
+  background: var(--govbr-blue) !important;
+  border-color: var(--govbr-blue) !important;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.govbr-btn-primary:hover {
+  background: var(--govbr-blue-dark) !important;
+  border-color: var(--govbr-blue-dark) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(25, 118, 210, 0.3);
+}
+
+.govbr-btn-secondary {
+  background: var(--govbr-gray-600) !important;
+  border-color: var(--govbr-gray-600) !important;
+}
+
+.govbr-btn-secondary:hover {
+  background: var(--govbr-gray-800) !important;
+  border-color: var(--govbr-gray-800) !important;
+}
+
+/* Loading spinner nos botões */
+.loading {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 0.5rem;
+}
+
+.loading.show {
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Estados do botão durante logout forçado */
+.govbr-btn-primary.processing {
+  background: var(--govbr-gray-600) !important;
+  border-color: var(--govbr-gray-600) !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.govbr-btn-primary.processing:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ====== SEÇÃO DE AJUDA ====== */
+.govbr-help-section {
+  background: var(--govbr-gray-50);
+  border: 1px solid var(--govbr-gray-200);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  text-align: left;
+}
+
+.govbr-help-section h3 {
+  color: var(--govbr-blue);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.govbr-help-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.govbr-help-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.govbr-help-item span:last-child {
+  color: var(--govbr-gray-600);
+  font-size: 0.9rem;
+}
+
+/* ====== LINKS EXTERNOS ====== */
+.govbr-external-links {
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--govbr-gray-200);
+}
+
+.govbr-external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--govbr-blue);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.govbr-external-link:hover {
+  background: var(--govbr-blue-light);
+  color: white;
+  text-decoration: none;
+}
+
+.govbr-external-link:before {
+  content: "🔗";
+  font-size: 0.9em;
+}
+
+/* ====== FOOTER DE SUPORTE ====== */
+.govbr-support-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--govbr-gray-200);
+  color: var(--govbr-gray-600);
+  font-size: 0.9rem;
+}
+
+.govbr-support-footer p {
+  margin-bottom: 0.25rem;
+}
+
+.govbr-support-footer small {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* ====== RESPONSIVIDADE ====== */
+@media (max-width: 768px) {
+  .govbr-error-container {
+    padding: 1rem;
+  }
+  
+  .govbr-error-title {
+    font-size: 1.5rem;
+  }
+  
+  .govbr-error-icon {
+    font-size: 3rem;
+  }
+  
+  .govbr-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .govbr-help-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .govbr-level-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .govbr-error-details,
+  .govbr-help-section {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+  }
+}
+
+/* ====== ACESSIBILIDADE ====== */
+.govbr-error-container [role="button"]:focus,
+.govbr-external-link:focus {
+  outline: 2px solid var(--govbr-blue);
+  outline-offset: 2px;
+}
+
+/* Melhora contraste para leitores de tela */
+@media (prefers-contrast: high) {
+  .govbr-level-badge {
+    border: 2px solid currentColor;
+  }
+  
+  .govbr-error-details {
+    border-width: 2px;
+  }
+}
+
+/* Reduz animações se solicitado */
+@media (prefers-reduced-motion: reduce) {
+  .govbr-error-icon,
+  .loading,
+  .govbr-btn-primary {
+    animation: none;
+  }
+  
+  .govbr-btn-primary:hover {
+    transform: none;
+  }
+}

@@ -2,7 +2,7 @@ package br.com.spi.govbr.authenticator;
 
 import br.com.spi.govbr.config.GovBrConfig;
 import br.com.spi.govbr.dto.ValidationResult;
-import br.com.spi.govbr.dto.GovBrErrorResponseHandler;
+import br.com.spi.govbr.dto.GovBrThemeErrorHandler;
 import br.com.spi.govbr.service.LevelValidationService;
 import br.com.spi.govbr.util.GovBrSessionCleaner;
 import br.com.spi.govbr.util.TokenExtractor;
@@ -13,7 +13,6 @@ import org.keycloak.authentication.Authenticator;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
-
 import jakarta.ws.rs.core.Response;
 
 public class GovBrLevelAuthenticator implements Authenticator {
@@ -89,24 +88,18 @@ public class GovBrLevelAuthenticator implements Authenticator {
                                               ValidationResult result) {
         // Limpa sessões antes de exibir erro
         GovBrSessionCleaner.limparSessoesUsuario(context);
-
         Response errorResponse;
 
         if (result.errorMessage().contains("Token")) {
-            errorResponse = GovBrErrorResponseHandler.erroTokenInvalido(context);
+            errorResponse = GovBrThemeErrorHandler.erroTokenInvalido(context);
         } else if (result.errorMessage().contains("insuficiente")) {
-            errorResponse = GovBrErrorResponseHandler.erroNivelInsuficiente(
+            errorResponse = GovBrThemeErrorHandler.erroNivelInsuficiente(
                     context, result.userLevel());
         } else if (result.errorMessage().contains("indisponível")) {
-            errorResponse = GovBrErrorResponseHandler.erroServicoIndisponivel(context);
+            errorResponse = GovBrThemeErrorHandler.erroServicoIndisponivel(context);
         } else {
-            // Erro genérico
-            errorResponse = GovBrErrorResponseHandler.criarPaginaErro(
-                    context,
-                    "Erro de Validação",
-                    result.errorMessage(),
-                    "Ocorreu um erro durante a validação do seu nível Gov.br."
-            );
+            errorResponse = GovBrThemeErrorHandler.erroGenerico(
+                    context, result.errorMessage());
         }
 
         context.failure(AuthenticationFlowError.INVALID_CREDENTIALS, errorResponse);
@@ -115,16 +108,14 @@ public class GovBrLevelAuthenticator implements Authenticator {
     private void exibirErroTokenInvalido(AuthenticationFlowContext context) {
         // Limpa sessões antes de exibir erro
         GovBrSessionCleaner.limparSessoesUsuario(context);
-
-        Response errorResponse = GovBrErrorResponseHandler.erroTokenInvalido(context);
+        Response errorResponse = GovBrThemeErrorHandler.erroTokenInvalido(context);
         context.failure(AuthenticationFlowError.INVALID_CREDENTIALS, errorResponse);
     }
 
     private void exibirErroServicoIndisponivel(AuthenticationFlowContext context) {
         // Limpa sessões antes de exibir erro
         GovBrSessionCleaner.limparSessoesUsuario(context);
-
-        Response errorResponse = GovBrErrorResponseHandler.erroServicoIndisponivel(context);
+        Response errorResponse = GovBrThemeErrorHandler.erroServicoIndisponivel(context);
         context.failure(AuthenticationFlowError.GENERIC_AUTHENTICATION_ERROR, errorResponse);
     }
 
